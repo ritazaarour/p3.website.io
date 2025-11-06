@@ -1,0 +1,6 @@
+.tooltip {
+  font-size: 12px;
+  pointer-events: none;
+  border-radius: 4px;
+  box-shadow: 0px 2px 5px rgba(0,0,0,0.2);
+}
