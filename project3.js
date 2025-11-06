@@ -1,7 +1,9 @@
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+
 d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
   console.log("Data loaded:", rawData.length, "records");
 
-  // onvert year string to number
+  // convert year string to number
   rawData.forEach(d => {
     d.Year = +d.Year;
   });
