@@ -35,7 +35,10 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  const x = d3.scaleLinear().range([0, width]);
+  const x = d3.scaleLinear()
+    .domain([d3.min(rawData, d => d.Value), d3.max(rawData, d => d.Value)]) // fixed across all years
+    .range([0, width]);
+
   const y = d3.scaleBand()
     .domain(allContinents)
     .range([0, height])
@@ -46,14 +49,17 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
 
   // axes
   const xAxis = svg.append("g")
-    .attr("transform", `translate(0,${height})`);
-  const yAxis = svg.append("g");
+    .attr("transform", `translate(0,${height})`)
+    .call(d3.axisBottom(x));
+
+  const yAxis = svg.append("g").call(d3.axisLeft(y));
 
   svg.append("text")
     .attr("x", width / 2)
     .attr("y", -10)
     .attr("text-anchor", "middle")
     .attr("font-size", "16px")
+    .text("Average Temperature by Continent");
 
   const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 
@@ -88,12 +94,7 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
       return { continent: c.continent, Value: entry ? entry.Value : 0 };
     });
 
-    x.domain([0, d3.max(yearData, d => d.Value)]);
-
-    xAxis.transition().duration(500).call(d3.axisBottom(x));
-    yAxis.transition().duration(500).call(d3.axisLeft(y));
-
-    // JOIN bars
+    // JOIN
     const bars = svg.selectAll(".bar").data(yearData, d => d.continent);
 
     bars.exit()
@@ -118,7 +119,7 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
     svg.selectAll(".bar")
       .on("mouseover", (event, d) => {
         tooltip.transition().style("opacity", 1);
-        tooltip.html(`<b>${d.continent}</b><br>${year}: ${d.Value.toFixed(2)}°C total`)
+        tooltip.html(`<b>${d.continent}</b><br>${year}: ${d.Value.toFixed(2)}°C avg`)
           .style("left", event.pageX + 8 + "px")
           .style("top", event.pageY - 28 + "px");
       })
