@@ -14,7 +14,7 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
     continent,
     values: d3.rollups(
       values,
-      v => d3.sum(v, d => d.Value), // total temperature
+      v => d3.mean(v, d => d.Value),
       d => d.Year
     ).map(([Year, Value]) => ({ Year, Value }))
      .sort((a, b) => a.Year - b.Year)
