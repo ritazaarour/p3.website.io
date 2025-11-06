@@ -59,7 +59,6 @@ d3.json("Surface_Temp_Change_reduced.json").then(rawData => {
     .attr("y", -10)
     .attr("text-anchor", "middle")
     .attr("font-size", "16px")
-    .text("Average Temperature by Continent");
 
   const tooltip = d3.select("body").append("div").attr("class", "tooltip");
 
