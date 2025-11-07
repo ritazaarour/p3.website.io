@@ -235,33 +235,41 @@ function update(data, year) {
 
 // Brush handler
 function brushed(event) {
+  const selection = event.selection;
   const yearData = currentData.filter(d => +d.Year === currentYear);
-  const sel = event.selection;
 
-  // If nothing selected → reset
-  if (!sel) {
-    chartG.selectAll(".bar").attr("opacity", 1);
+  // Step 1: Reset all bars to full opacity on every brush call
+  chartG.selectAll(".bar").attr("opacity", 1);
+
+  // Step 2: If no selection, reset stats and stop
+  if (!selection) {
     updateStats(yearData);
     return;
   }
 
-  const [y0, y1] = sel;
+  const [y0, y1] = selection;
 
-  // Highlight ONLY bars that overlap the current brush box
-  chartG.selectAll(".bar")
-    .attr("opacity", d => {
-      const top = yScale(d.Country);
-      const bottom = top + yScale.bandwidth();
-      return (bottom >= y0 && top <= y1) ? 1 : 0.3;
-    });
-
-  // Update stats from the currently brushed subset
-  const brushedSubset = yearData.filter(d => {
-    const top = yScale(d.Country);
-    const bottom = top + yScale.bandwidth();
-    return (bottom >= y0 && top <= y1);
+  // Step 3: Recalculate which bars are currently within the brush
+  const brushedBars = yearData.filter(d => {
+    const barTop = yScale(d.Country);
+    const barBottom = barTop + yScale.bandwidth();
+    return barBottom >= y0 && barTop <= y1;
   });
-  updateStats(brushedSubset);
+
+  // Step 4: Dim all non-selected bars
+  chartG.selectAll(".bar")
+    .attr("opacity", d =>
+      brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
+    );
+
+  // Step 5: Update stats
+  updateStats(brushedBars);
+
+  // 🔧 Step 6: Clear any stale brush selection after processing
+  // This line actually resets D3’s internal selection reference:
+  if (event.type === "end") {
+    d3.select(this).call(d3.brushY().move, null);
+  }
 }
 
 
