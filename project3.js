@@ -229,15 +229,15 @@ function brushed(event) {
   // Ensure we are working with the data currently displayed in the chart
   const yearData = currentData.filter(d => +d.Year === currentYear);
 
-  // If nothing is brushed, reset all bars and stats
-    if (!selection) {
-      chartG.selectAll(".bar").attr("opacity", 1);
-      updateStats(yearData); // reset stats to show all countries for the year
+  // If nothing is brushed (selection is null), reset all bars and stats
+  if (!selection) {
+    chartG.selectAll(".bar").attr("opacity", 1);
+    updateStats(yearData); // reset stats to show all countries for the year
     return;
   }
 
   const [y0, y1] = selection;
-   
+  
   // Determine which data points are inside the brushed region
   const brushedDataPoints = yearData.filter(d => {
     // Calculate the Y position of the center of each bar
@@ -251,7 +251,7 @@ function brushed(event) {
   // Visually deemphasize all bars
   chartG.selectAll(".bar").attr("opacity", 0.3);
 
-  // Highlight only currently brushed bars
+  // Highlight (full opacity) only the brushed bars
   chartG.selectAll(".bar")
     .filter(d => brushedDataPoints.includes(d))
     .attr("opacity", 1);
@@ -275,8 +275,8 @@ function updateStats(filteredData) {
   d3.select("#avgTemp")
     .text(`${avgTemp >= 0 ? '+' : ''}${avgTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${avgTemp >= 0 ? 'warming' : 'cooling'}`);
-
   
+  // Note: maxTemp might be negative if all brushed items are cooling, adjust display accordingly
   d3.select("#maxTemp")
     .text(`${maxTemp >= 0 ? '+' : ''}${maxTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${maxTemp >= 0 ? 'warming' : 'cooling'}`);
