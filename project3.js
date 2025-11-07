@@ -108,7 +108,7 @@ function setupChart(data) {
     .padding(0.2)
     .range([0, chartHeight]);
 
-  // --- Add brush first (comes before bars in DOM) ---
+  // Brush
   chartG.append("g")
     .attr("class", "brush")
     .call(
@@ -227,7 +227,7 @@ function update(data, year) {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "5,5");
 
-  // --- Raise bars/labels so tooltips work again ---
+  // Raise for tooltips
   chartG.selectAll('.bar, .overlay ~ *').raise();
 }
 
@@ -245,7 +245,7 @@ function brushed(event) {
 
   const [y0, y1] = selection;
 
-  // Get bars inside brushed region
+  // selected bars
   const brushedBars = yearData.filter(d => {
     const yPos = yScale(d.Country) + yScale.bandwidth() / 2;
     return y0 <= yPos && yPos <= y1;
@@ -255,7 +255,7 @@ function brushed(event) {
   chartG.selectAll(".bar")
     .attr("opacity", d => brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3);
 
-  // Update stats based on brushed subset
+  // Update stats based on brushed bars
   updateStats(brushedBars);
 }
 
