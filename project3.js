@@ -274,4 +274,6 @@ loadData().then(rawData => {
     chartG.append("g")
         .attr("class", "brush")
         .call(brush);
+    //for hover & brush to work properly
+    chartG.select(".brush").lower();
 });
