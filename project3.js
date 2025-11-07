@@ -2,7 +2,6 @@ let xScale, yScale;
 let chartG;
 let chartWidth, chartHeight;
 let currentData, currentYear;
-let brush; // Declare the brush globally
 
 // Load JSON data
 async function loadData() {
@@ -110,14 +109,13 @@ function setupChart(data) {
     .range([0, chartHeight]);
 
   // --- Add brush first (comes before bars in DOM) ---
-  // Assign the D3 brush instance to the global variable 'brush'
-  brush = d3.brushY()
-    .extent([[0, 0], [chartWidth, chartHeight]])
-    .on("brush end", brushed);
-    
   chartG.append("g")
     .attr("class", "brush")
-    .call(brush); // Use the global brush variable
+    .call(
+      d3.brushY()
+        .extent([[0, 0], [chartWidth, chartHeight]])
+        .on("brush end", brushed)
+    );
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
@@ -156,12 +154,6 @@ function wrapText(text, width) {
 
 // Update chart
 function update(data, year) {
-  // Clear the brush selection when the year changes
-  // The 'if(brush)' check prevents errors on the *very* first load of the page
-  if (brush) {
-    chartG.select(".brush").call(brush.move, null); 
-  }
-
   currentData = data;
   currentYear = year;
 
@@ -169,7 +161,7 @@ function update(data, year) {
   yearData.sort((a, b) => d3.descending(a.Value, b.Value));
 
   // Stats
-  updateStats(yearData); // Use the new function below
+  updateStats(yearData);
   yScale.domain(yearData.map(d => d.Country));
 
   const bars = chartG.selectAll("rect.bar").data(yearData, d => d.Country);
@@ -196,8 +188,7 @@ function update(data, year) {
     .attr("x", d => Math.min(xScale(0), xScale(d.Value)))
     .attr("width", d => Math.abs(xScale(d.Value) - xScale(0)))
     .attr("fill", d => d.Value >= 0 ? "#d73027" : "#4575b4")
-    // Crucially, set opacity back to 1 here during the general update cycle
-    .attr("opacity", 1); 
+    .attr("opacity", 1);
 
   bars.exit().remove();
 
@@ -231,7 +222,6 @@ function update(data, year) {
   chartG.selectAll('.bar, .overlay ~ *').raise();
 }
 
-// Update stats panel based on filtered data (New helper function)
 function updateStats(filteredData) {
   if (filteredData.length === 0) {
     d3.select("#avgTemp").text("+0.00°C").attr("class", "stat-value");
@@ -254,11 +244,10 @@ function updateStats(filteredData) {
     
   d3.select("#warmingCount").text(warmingCount);
 }
-
-
-// Brush handler (Completed function)
+// Brush handler
 function brushed(event) {
   const selection = event.selection;
+  // Ensure we are working with the data currently displayed in the chart
   const yearData = currentData.filter(d => +d.Year === currentYear);
 
   // If nothing is brushed (selection is null), reset all bars and stats
@@ -272,8 +261,11 @@ function brushed(event) {
   
   // Determine which data points are inside the brushed region
   const brushedDataPoints = yearData.filter(d => {
+    // Calculate the Y position of the center of each bar
     const barTop = yScale(d.Country);
     const barBottom = barTop + yScale.bandwidth();
+    
+    // Check if any part of the bar is within the selection range
     return (barTop < y1 && barBottom > y0); 
   });
 
@@ -289,18 +281,11 @@ function brushed(event) {
   updateStats(brushedDataPoints);
 }
 
-// Main initialization function to control execution order
-async function init() {
-  const fullData = await loadData();
-  const americasData = filterRegions(fullData);
-  const yearRange = getYearRange(americasData);
-
-  setupUI(yearRange, americasData);
-  setupChart(fullData); 
-  
-  // Initial call to update - everything is ready now
-  update(americasData, yearRange.min);
-}
-
-// Start the application
-init();
+// Load data and initialize
+loadData().then(rawData => {
+  const americas = filterRegions(rawData);
+  const yearRange = getYearRange(americas);
+  setupUI(yearRange, americas);
+  setupChart(americas);
+  update(americas, yearRange.min);
+});
