@@ -111,11 +111,13 @@ function setupChart(data) {
   // Brush
   const brush = d3.brushY()
   .extent([[0, 0], [chartWidth, chartHeight]])
-  .on("start brush end", brushed);
-
-  chartG.append("g")
-  .attr("class", "brush")
-  .call(brush);
+  .on("start", () => {
+    chartG.selectAll(".bar").attr("opacity", 1);
+    updateStats(currentData.filter(d => +d.Year === currentYear));
+  })
+  .on("brush end", brushed);
+  
+  chartG.append("g").attr("class", "brush").call(brush);
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
@@ -234,35 +236,34 @@ function update(data, year) {
 // Brush handler
 function brushed(event) {
   const yearData = currentData.filter(d => +d.Year === currentYear);
-  const selection = event.selection;
+  const sel = event.selection;
 
-  // Step 1: always clear previous highlighting
-  chartG.selectAll(".bar").attr("opacity", 1);
-
-  // Step 2: if no selection, reset stats and stop
-  if (!selection) {
+  // If nothing selected → reset
+  if (!sel) {
+    chartG.selectAll(".bar").attr("opacity", 1);
     updateStats(yearData);
     return;
   }
 
-  const [y0, y1] = selection;
+  const [y0, y1] = sel;
 
-  // Step 3: calculate brushed bars for THIS selection only
-  const brushedBars = yearData.filter(d => {
-    const barTop = yScale(d.Country);
-    const barBottom = barTop + yScale.bandwidth();
-    return barBottom >= y0 && barTop <= y1;
-  });
-
-  // Step 4: highlight only the current brushed bars
+  // Highlight ONLY bars that overlap the current brush box
   chartG.selectAll(".bar")
-    .attr("opacity", d =>
-      brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
-    );
+    .attr("opacity", d => {
+      const top = yScale(d.Country);
+      const bottom = top + yScale.bandwidth();
+      return (bottom >= y0 && top <= y1) ? 1 : 0.3;
+    });
 
-  // Step 5: update stats for the current brush only
-  updateStats(brushedBars);
+  // Update stats from the currently brushed subset
+  const brushedSubset = yearData.filter(d => {
+    const top = yScale(d.Country);
+    const bottom = top + yScale.bandwidth();
+    return (bottom >= y0 && top <= y1);
+  });
+  updateStats(brushedSubset);
 }
+
 
 function updateStats(dataSubset) {
   const avgTemp = d3.mean(dataSubset, d => d.Value) || 0;
