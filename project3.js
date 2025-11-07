@@ -109,13 +109,16 @@ function setupChart(data) {
     .range([0, chartHeight]);
 
   // Brush
+  const brush = d3.brushY()
+  .extent([[0, 0], [chartWidth, chartHeight]])
+  .on("start", function(event) {
+    chartG.select(".brush").call(brush.move, null);
+  })
+  .on("brush end", brushed);
+  
   chartG.append("g")
-    .attr("class", "brush")
-    .call(
-      d3.brushY()
-        .extent([[0, 0], [chartWidth, chartHeight]])
-        .on("brush end", brushed)
-    );
+  .attr("class", "brush")
+  .call(brush);
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
