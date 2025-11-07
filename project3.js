@@ -108,15 +108,14 @@ function setupChart(data) {
     .padding(0.2)
     .range([0, chartHeight]);
 
-  // --- Add brush first (comes before bars in DOM) ---
-  const brush = d3.brushY()
-  .extent([[0, 0], [chartWidth, chartHeight]])
-  .on("start", brushStart)
-  .on("brush end", brushed);
-
+  // Brush
   chartG.append("g")
-  .attr("class", "brush")
-  .call(brush);
+    .attr("class", "brush")
+    .call(
+      d3.brushY()
+        .extent([[0, 0], [chartWidth, chartHeight]])
+        .on("brush end", brushed)
+    );
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
@@ -163,6 +162,7 @@ function update(data, year) {
 
   // Stats
   updateStats(yearData);
+
   yScale.domain(yearData.map(d => d.Country));
 
   const bars = chartG.selectAll("rect.bar").data(yearData, d => d.Country);
@@ -219,8 +219,45 @@ function update(data, year) {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "5,5");
 
-  // --- Raise bars/labels so tooltips work again ---
+  // Raise for tooltips
   chartG.selectAll('.bar, .overlay ~ *').raise();
+}
+
+// Brush handler
+function brushed(event) {
+  const selection = event.selection;
+  // Ensure we are working with the data currently displayed in the chart
+  const yearData = currentData.filter(d => +d.Year === currentYear);
+    // If nothing is brushed (selection is null), reset all bars and stats
+  if (!selection) {
+    chartG.selectAll(".bar").attr("opacity", 1);
+    updateStats(yearData);
+    return;
+  }
+
+  const [y0, y1] = selection;
+
+    // Determine which data points are inside the brushed region
+  const brushedDataPoints = yearData.filter(d => {
+    // Calculate the Y position of the center of each bar
+    const barTop = yScale(d.Country);
+    const barBottom = barTop + yScale.bandwidth();
+    
+    // Check if any part of the bar is within the selection range
+    return (barTop < y1 && barBottom > y0); 
+  });
+
+  // Update the chart with the brushed data points
+  update(brushedDataPoints, currentYear);
+
+    // Visually deemphasize all bars
+  chartG.selectAll(".bar").attr("opacity", 0.3);
+
+    // Highlight (full opacity) only the brushed bars
+  chartG.selectAll(".bar").filter(d => brushedDataPoints.includes(d)).attr("opacity", 1);
+
+    // Update stats panel using ONLY the data that was brushed
+  updateStats(brushedDataPoints);
 }
 
 function updateStats(filteredData) {
@@ -238,47 +275,11 @@ function updateStats(filteredData) {
   d3.select("#avgTemp")
     .text(`${avgTemp >= 0 ? '+' : ''}${avgTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${avgTemp >= 0 ? 'warming' : 'cooling'}`);
-  
   d3.select("#maxTemp")
     .text(`${maxTemp >= 0 ? '+' : ''}${maxTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${maxTemp >= 0 ? 'warming' : 'cooling'}`);
-    
+
   d3.select("#warmingCount").text(warmingCount);
-}
-
-function brushStart(event) {
-  // Clear any existing brush selection when a new one starts
-  if (!event.sourceEvent) return; // ignore automatic events
-  chartG.select(".brush").call(d3.brushY().clear); // remove old brush region
-}
-
-// Brush handler
-function brushed(event) {
-  const selection = event.selection;
-  const yearData = currentData.filter(d => +d.Year === currentYear);
-
-  // Reset all bars first
-  chartG.selectAll(".bar").attr("opacity", 0.3);
-
-  if (!selection) {
-    chartG.selectAll(".bar").attr("opacity", 1);
-    updateStats(yearData);
-    return;
-  }
-
-  const [y0, y1] = selection;
-
-  const brushedDataPoints = yearData.filter(d => {
-    const barTop = yScale(d.Country);
-    const barBottom = barTop + yScale.bandwidth();
-    return (barTop < y1 && barBottom > y0);
-  });
-
-  chartG.selectAll(".bar")
-    .filter(d => brushedDataPoints.includes(d))
-    .attr("opacity", 1);
-
-  updateStats(brushedDataPoints);
 }
 
 // Load data and initialize
