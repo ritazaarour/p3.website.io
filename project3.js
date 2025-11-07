@@ -268,12 +268,22 @@ loadData().then(rawData => {
 
     // adding brushing
     const brush = d3.brushY()
-        .extent([[0, 0], [chartWidth, chartHeight]])
-        .on("brush end", brushed);
+    .extent([[0, 0], [chartWidth, chartHeight]])
+  // enable overlay during drag, disable it otherwise so hover works
+    .on("start", (event) => {
+      chartG.select(".brush .overlay").style("pointer-events", "all");
+    })
+    .on("brush", brushed)
+    .on("end", (event) => {
+      chartG.select(".brush .overlay").style("pointer-events", "none");
+      brushed(event);
+    });
+    
+    const brushG = chartG.append("g")
+    .attr("class", "brush")
+    .call(brush);
+    
+    brushG.lower();
 
-    chartG.append("g")
-        .attr("class", "brush")
-        .call(brush);
-    //for hover & brush to work properly
-    chartG.select(".brush").lower();
+    brushG.select(".overlay").style("pointer-events", "none");
 });
