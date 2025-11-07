@@ -275,6 +275,6 @@ loadData().then(rawData => {
     .attr("class", "brush")
     .call(brush);
     
-    brushG.lower();
+    chartG.select(".brush").raise();
     chartG.select(".brush .overlay").style("pointer-events", "all");
   });
