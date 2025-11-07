@@ -111,11 +111,8 @@ function setupChart(data) {
   // Brush
   const brush = d3.brushY()
   .extent([[0, 0], [chartWidth, chartHeight]])
-  .on("start", function(event) {
-    chartG.select(".brush").call(brush.move, null);
-  })
-  .on("brush end", brushed);
-  
+  .on("start brush end", brushed);
+
   chartG.append("g")
   .attr("class", "brush")
   .call(brush);
@@ -239,34 +236,31 @@ function brushed(event) {
   const yearData = currentData.filter(d => +d.Year === currentYear);
   const selection = event.selection;
 
-  // Always reset bar opacity first
+  // Step 1: always clear previous highlighting
   chartG.selectAll(".bar").attr("opacity", 1);
 
-  // If there's no active brush selection (user clicked outside)
+  // Step 2: if no selection, reset stats and stop
   if (!selection) {
     updateStats(yearData);
-
-    // Completely remove the old brush selection rectangle
-    chartG.select(".brush").call(d3.brushY().clear);
     return;
   }
 
   const [y0, y1] = selection;
 
-  // Compute which bars overlap the current brush area
+  // Step 3: calculate brushed bars for THIS selection only
   const brushedBars = yearData.filter(d => {
     const barTop = yScale(d.Country);
     const barBottom = barTop + yScale.bandwidth();
     return barBottom >= y0 && barTop <= y1;
   });
 
-  // Dim non-selected bars
+  // Step 4: highlight only the current brushed bars
   chartG.selectAll(".bar")
     .attr("opacity", d =>
       brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
     );
 
-  // Update stats for only brushed subset
+  // Step 5: update stats for the current brush only
   updateStats(brushedBars);
 }
 
