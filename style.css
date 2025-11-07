@@ -174,3 +174,10 @@ rect:hover {
     stroke: #e27474;
     shape-rendering: crispEdges;
 }
+
+.brush {
+  pointer-events: none;
+}
+.brush .overlay {
+  pointer-events: all;
+}
