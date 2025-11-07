@@ -276,5 +276,5 @@ loadData().then(rawData => {
     .call(brush);
     
     chartG.select(".brush").raise();
-    chartG.select(".brush .overlay").style("pointer-events", "all");
+    chartG.select(".labels").raise();
   });
