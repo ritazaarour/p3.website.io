@@ -1,10 +1,176 @@
-#chart {
-  text-align: center;
+/* general page styling */
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 20px;
+    background-color: rgb(242, 207, 176);
 }
 
-.tooltip {
-  font-size: 12px;
-  pointer-events: none;
-  border-radius: 4px;
-  box-shadow: 0px 2px 5px #ccc;
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* Title Styles */
+h2 {
+    text-align: center;
+    color: #333;
+    margin: 20px 0 10px 0;
+}
+
+/* slider / controls*/
+#controls {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    gap: 10px;
+    font-size: 1.5em;
+}
+
+#controls label {
+    font-weight: bold;
+}
+
+#yearSlider {
+    width: 400px;
+}
+
+/* Year Label */
+#yearLabel {
+    font-weight: bold;
+    font-size: 24px;
+    color: #0b0a0a;
+}
+
+/* Legend */
+.legend {
+    text-align: center;
+    margin: 10px 0 20px 0;
+    font-size: 24px;
+}
+
+.legend-warming {
+    color: #d73027;
+    margin-right: 15px;
+    font-weight: bold;
+}
+
+.legend-cooling {
+    color: #4575b4;
+    font-weight: bold;
+}
+
+/* Statistics Panel */
+#stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 20px auto;
+    padding: 20px;
+    background: linear-gradient(135deg, #faf7f5 0%, #fbc3c3 100%);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    max-width: 800px;
+}
+
+.stat-item {
+    text-align: center;
+    padding: 10px 20px;
+}
+
+.stat-value {
+    font-size: 2em;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 5px;
+}
+
+.stat-label {
+    font-size: 0.9em;
+    color: #666;
+    font-weight: 500;
+}
+
+.warming {
+    color: gra#d73027 !important;
+}
+
+.cooling {
+    color: #4575b4 !important;
+}
+
+/* SVG styling */
+svg {
+    background-color: #ffffff;
+    border: 1px solid #ccc;
+    display: block;
+    margin: auto;
+}
+
+/* bar styling */
+rect {
+    cursor: pointer;
+    transition: opacity 0.2s, fill 0.3s;
+}
+
+rect:hover {
+    opacity: 0.7;
+}
+
+/* axis styling */
+.axis path,
+.axis line {
+    stroke: #333;
+}
+
+.axis text {
+    font-size: 14px;
+}
+
+.y-axis text {
+    font-size: 14px;
+}
+
+.x-axis text {
+    font-size: 14px;
+}
+
+/* Axis Labels */
+.x-axis-label {
+    font-size: 1em;
+    font-weight: bold;
+    fill: #333;
+}
+
+/* Value Labels */
+.value-label {
+    font-size: 0.8 em;
+    font-weight: 500;
+    fill: #333;
+}
+
+/* Zero Line */
+.zero-line {
+    opacity: 0.5;
+}
+
+/* Tooltip Styles */
+#tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    pointer-events: none;
+    font-size: 14px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+/* Brush Selection Styles */
+.brush .selection {
+    fill: #777;
+    fill-opacity: 0.3;
+    stroke: #e27474;
+    shape-rendering: crispEdges;
 }
