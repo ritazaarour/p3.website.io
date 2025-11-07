@@ -240,6 +240,8 @@ function brushed(event) {
   if (!selection) {
     chartG.selectAll(".bar").attr("opacity", 1);
     updateStats(yearData); // reset to all
+    // Clear brush selection visually
+    chartG.select(".brush").call(d3.brushY().move, null);
     return;
   }
 
