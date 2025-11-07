@@ -236,26 +236,25 @@ function brushed(event) {
   const selection = event.selection;
   const yearData = currentData.filter(d => +d.Year === currentYear);
 
-  // If nothing is brushed, reset all bars and stats
   if (!selection) {
     chartG.selectAll(".bar").attr("opacity", 1);
-    updateStats(yearData); // reset to all
+    updateStats(yearData);
     return;
   }
 
   const [y0, y1] = selection;
 
-  // selected bars
   const brushedBars = yearData.filter(d => {
-    const yPos = yScale(d.Country) + yScale.bandwidth() / 2;
-    return y0 <= yPos && yPos <= y1;
+    const barTop = yScale(d.Country);
+    const barBottom = barTop + yScale.bandwidth();
+    return barBottom >= y0 && barTop <= y1;
   });
 
-  // Highlight brushed bars
   chartG.selectAll(".bar")
-    .attr("opacity", d => brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3);
+    .attr("opacity", d =>
+      brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
+    );
 
-  // Update stats based on brushed bars
   updateStats(brushedBars);
 }
 
