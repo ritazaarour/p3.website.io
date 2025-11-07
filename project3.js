@@ -17,7 +17,7 @@ function filterRegions(data) {
   );
 }
 
-// Scroll for years
+// Get year range
 function getYearRange(data) {
   const years = [...new Set(data.map(d => +d.Year))];
   return {
@@ -51,11 +51,6 @@ function setupUI(yearRange, americasData) {
     .attr("value", yearRange.min);
 
   controls.append("span").attr("id", "yearLabel").text(yearRange.min);
-
-  // Legend
-  const legend = app.append("div").attr("class", "legend");
-  legend.append("span").attr("class", "legend-warming").html("■ Warming");
-  legend.append("span").attr("class", "legend-cooling").html("■ Cooling");
 
   // Stats panel
   const stats = app.append("div").attr("id", "stats");
@@ -108,15 +103,12 @@ function setupChart(data) {
     .padding(0.2)
     .range([0, chartHeight]);
 
-  // --- Add brush first (comes before bars in DOM) ---
+  // Add brush
   const brush = d3.brushY()
-  .extent([[0, 0], [chartWidth, chartHeight]])
-  .on("start", brushStart)
-  .on("brush end", brushed);
+    .extent([[0, 0], [chartWidth, chartHeight]])
+    .on("brush end", brushed);
 
-  chartG.append("g")
-  .attr("class", "brush")
-  .call(brush);
+  chartG.append("g").attr("class", "brush").call(brush);
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
@@ -130,29 +122,6 @@ function setupChart(data) {
     .text("Temperature Change (°C)");
 }
 
-// Wrap y-axis text
-function wrapText(text, width) {
-  text.each(function () {
-    const text = d3.select(this);
-    const words = text.text().split(/\s+/).reverse();
-    let word, line = [], lineNumber = 0;
-    const lineHeight = 1.1;
-    const y = text.attr("y");
-    const dy = parseFloat(text.attr("dy") || 0);
-    let tspan = text.text(null).append("tspan").attr("x", -10).attr("y", y).attr("dy", dy + "em");
-    while (word = words.pop()) {
-      line.push(word);
-      tspan.text(line.join(" "));
-      if (tspan.node().getComputedTextLength() > width) {
-        line.pop();
-        tspan.text(line.join(" "));
-        line = [word];
-        tspan = text.append("tspan").attr("x", -10).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
-      }
-    }
-  });
-}
-
 // Update chart
 function update(data, year) {
   currentData = data;
@@ -161,7 +130,6 @@ function update(data, year) {
   const yearData = data.filter(d => +d.Year === year);
   yearData.sort((a, b) => d3.descending(a.Value, b.Value));
 
-  // Stats
   updateStats(yearData);
   yScale.domain(yearData.map(d => d.Country));
 
@@ -193,19 +161,7 @@ function update(data, year) {
 
   bars.exit().remove();
 
-  const labels = chartG.selectAll(".value-label").data(yearData, d => d.Country);
-  labels.enter().append("text")
-    .attr("class", "value-label")
-    .merge(labels)
-    .transition().duration(300)
-    .attr("x", d => xScale(d.Value) + (d.Value >= 0 ? 5 : -5))
-    .attr("y", d => yScale(d.Country) + yScale.bandwidth() / 2)
-    .attr("dy", "0.35em")
-    .attr("text-anchor", d => d.Value >= 0 ? "start" : "end")
-    .text(d => `${d.Value > 0 ? '+' : ''}${d.Value.toFixed(2)}°C`);
-  labels.exit().remove();
-
-  chartG.select(".y-axis").transition().duration(300).call(d3.axisLeft(yScale)).selectAll(".tick text").call(wrapText, 240);
+  chartG.select(".y-axis").transition().duration(300).call(d3.axisLeft(yScale));
   chartG.select(".x-axis").transition().duration(300).call(d3.axisTop(xScale).ticks(8));
 
   chartG.selectAll(".zero-line").remove();
@@ -219,10 +175,12 @@ function update(data, year) {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "5,5");
 
-  // --- Raise bars/labels so tooltips work again ---
-  chartG.selectAll('.bar, .overlay ~ *').raise();
+  // Clear brush when year changes
+  const brushG = chartG.select(".brush");
+  if (!brushG.empty()) brushG.call(d3.brushY().move, null);
 }
 
+// Update stats
 function updateStats(filteredData) {
   if (filteredData.length === 0) {
     d3.select("#avgTemp").text("+0.00°C").attr("class", "stat-value");
@@ -230,7 +188,7 @@ function updateStats(filteredData) {
     d3.select("#warmingCount").text("0");
     return;
   }
-  
+
   const avgTemp = d3.mean(filteredData, d => d.Value);
   const maxTemp = d3.max(filteredData, d => d.Value);
   const warmingCount = filteredData.filter(d => d.Value > 0).length;
@@ -238,50 +196,49 @@ function updateStats(filteredData) {
   d3.select("#avgTemp")
     .text(`${avgTemp >= 0 ? '+' : ''}${avgTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${avgTemp >= 0 ? 'warming' : 'cooling'}`);
-  
+
   d3.select("#maxTemp")
     .text(`${maxTemp >= 0 ? '+' : ''}${maxTemp.toFixed(2)}°C`)
     .attr("class", `stat-value ${maxTemp >= 0 ? 'warming' : 'cooling'}`);
-    
+
   d3.select("#warmingCount").text(warmingCount);
 }
 
-function brushStart(event) {
-  // Clear any existing brush selection when a new one starts
-  if (!event.sourceEvent) return; // ignore automatic events
-  chartG.select(".brush").call(d3.brushY().clear); // remove old brush region
-}
-
-// Brush handler
+// ✅ FIXED Brushed handler
 function brushed(event) {
   const selection = event.selection;
   const yearData = currentData.filter(d => +d.Year === currentYear);
+  const bars = chartG.selectAll(".bar");
 
-  // Reset all bars first
-  chartG.selectAll(".bar").attr("opacity", 0.3);
-
+  // If brush is cleared
   if (!selection) {
-    chartG.selectAll(".bar").attr("opacity", 1);
+    bars.attr("opacity", 1);
     updateStats(yearData);
     return;
   }
 
+  // Always reset old highlights
+  bars.attr("opacity", 0.3);
+
   const [y0, y1] = selection;
 
-  const brushedDataPoints = yearData.filter(d => {
-    const barTop = yScale(d.Country);
-    const barBottom = barTop + yScale.bandwidth();
-    return (barTop < y1 && barBottom > y0);
-  });
+  const brushedCountries = new Set(
+    yearData
+      .filter(d => {
+        const top = yScale(d.Country);
+        const bottom = top + yScale.bandwidth();
+        return top < y1 && bottom > y0;
+      })
+      .map(d => d.Country)
+  );
 
-  chartG.selectAll(".bar")
-    .filter(d => brushedDataPoints.includes(d))
-    .attr("opacity", 1);
+  // Highlight only current brushed bars
+  bars.attr("opacity", d => brushedCountries.has(d.Country) ? 1 : 0.3);
 
-  updateStats(brushedDataPoints);
+  updateStats(yearData.filter(d => brushedCountries.has(d.Country)));
 }
 
-// Load data and initialize
+// Load and initialize
 loadData().then(rawData => {
   const americas = filterRegions(rawData);
   const yearRange = getYearRange(americas);
@@ -289,3 +246,4 @@ loadData().then(rawData => {
   setupChart(americas);
   update(americas, yearRange.min);
 });
+
