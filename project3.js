@@ -106,14 +106,11 @@ function wrapText(text, width) {
     });
 }
 
-// adding brushing
 function updateStats(selectedData) {
     if (!selectedData || selectedData.length === 0) {
-        // Default to the full year's data if no countries are selected
         selectedData = currentData.filter(d => +d.Year === currentYear);
     }
     
-    // Check for empty array to prevent error if the filtered list is empty
     if (selectedData.length === 0) {
         d3.select("#avgTemp").text("+0.00°C").attr("class", "stat-value");
         d3.select("#maxTemp").text("+0.00°C");
@@ -121,12 +118,10 @@ function updateStats(selectedData) {
         return;
     }
 
-
     const avgTemp = d3.mean(selectedData, d => d.Value);
     const maxTemp = d3.max(selectedData, d => d.Value) || 0; 
     const warmingCount = selectedData.filter(d => d.Value > 0).length;
 
-    // Update the stats panel (using the existing IDs)
     d3.select("#avgTemp")
         .text(`${avgTemp >= 0 ? '+' : ''}${avgTemp.toFixed(2)}°C`)
         .attr("class", `stat-value ${avgTemp >= 0 ? 'warming' : 'cooling'}`);
@@ -137,40 +132,33 @@ function updateStats(selectedData) {
 }
 
 function brushed({selection}) {
-  currentBrushSelection = selection;
-    // If selection is null, the brush has been cleared
+    currentBrushSelection = selection;
+
     if (!selection) {
         // Reset opacity and update stats for the whole year
-        chartG.selectAll("rect")
-            .attr("opacity", 1);
-        
+        chartG.selectAll("rect").attr("opacity", 1);
         const yearData = currentData.filter(d => +d.Year === currentYear);
         updateStats(yearData);
         return;
     }
 
-    // [y0, y1] is the vertical extent of the brush
     const [y0, y1] = selection;
     const selectedCountries = [];
 
-    // Iterate through all bars to check for selection
+    // Check intersection with bars
     chartG.selectAll("rect").each(function(d) {
         const barY = yScale(d.Country);
         const barHeight = yScale.bandwidth();
         
-        // A bar is selected if its vertical range overlaps with the brush range
         const isSelected = y1 >= barY && y0 <= (barY + barHeight);
 
-        d3.select(this)
-            .attr("opacity", isSelected ? 1.0 : 0.3);
+        d3.select(this).attr("opacity", isSelected ? 1.0 : 0.3);
 
-        // Collect the data for the selected countries
         if (isSelected) {
             selectedCountries.push(d);
         }
     });
 
-    // Update the stats panel with the selected subset
     updateStats(selectedCountries);
 }
 
@@ -202,7 +190,16 @@ function setupChart(data) {
         .padding(0.2)
         .range([0, chartHeight]);
 
-    // Axes
+    // brushing
+    const brush = d3.brushY() // Vertical brush
+        .extent([[0, 0], [chartWidth, chartHeight]])
+        .on("brush end", brushed);
+
+    brushG = chartG.append("g")
+        .attr("class", "brush")
+        .call(brush);
+    
+    // Axes are appended AFTER the brush
     chartG.append("g").attr("class", "y-axis");
     chartG.append("g").attr("class", "x-axis");
 
@@ -212,14 +209,6 @@ function setupChart(data) {
         .attr("y", -30)
         .attr("text-anchor", "middle")
         .text("Temperature Change (°C)");
-
-    const brush = d3.brushY()
-        .extent([[0, 0], [chartWidth, chartHeight]])
-        .on("brush end", brushed);
-
-    brushG = chartG.append("g")
-        .attr("class", "brush")
-        .call(brush);
 }
 
 // Update chart
@@ -230,7 +219,7 @@ function update(data, year) {
     const yearData = data.filter(d => +d.Year === year);
     yearData.sort((a,b) => d3.descending(a.Value, b.Value));
 
-    updateStats(yearData);
+    updateStats(yearData); 
 
     yScale.domain(yearData.map(d => d.Country));
 
@@ -238,19 +227,20 @@ function update(data, year) {
 
     const barsEnter = bars.enter().append("rect")
         .attr("rx", 2)
+        // Keep hover handlers, knowing they need to be raised above the brush overlay
         .on("mouseover", function(event, d) {
             tooltip.style("opacity", 1)
                      .html(`<strong>${d.Country}</strong><br/>Temperature Change: ${d.Value > 0 ? '+' : ''}${d.Value.toFixed(2)}°C<br/>Year: ${year}`)
                      .style("left", (event.pageX + 10) + "px")
                      .style("top", (event.pageY - 25) + "px");
-            // Only set opacity if the element isn't currently dimmed by the brush
-            if (d3.select(this).attr("opacity") == 1 || !d3.select(this).attr("opacity")) {
+            // Only apply temporary hover opacity if the bar isn't dimmed by the brush
+            if (d3.select(this).attr("opacity") > 0.3) {
                 d3.select(this).style("opacity", 0.7);
             }
         })
         .on("mouseout", function() {
             tooltip.style("opacity", 0);
-            if (d3.select(this).attr("opacity") == 1 || !d3.select(this).attr("opacity")) {
+            if (d3.select(this).attr("opacity") > 0.3) {
                 d3.select(this).style("opacity", 1);
             }
         });
@@ -262,7 +252,8 @@ function update(data, year) {
         .attr("x", d => Math.min(xScale(0), xScale(d.Value)))
         .attr("width", d => Math.abs(xScale(d.Value) - xScale(0)))
         .attr("fill", d => d.Value >= 0 ? "#d73027" : "#4575b4")
-        .attr("opacity", 1); // Ensure initial update sets full opacity
+        .attr("opacity", 1) 
+        .raise();
 
     bars.exit().remove();
 
@@ -275,7 +266,8 @@ function update(data, year) {
         .attr("y", d => yScale(d.Country) + yScale.bandwidth()/2)
         .attr("dy", "0.35em")
         .attr("text-anchor", d => d.Value >= 0 ? "start" : "end")
-        .text(d => `${d.Value > 0 ? '+' : ''}${d.Value.toFixed(2)}°C`);
+        .text(d => `${d.Value > 0 ? '+' : ''}${d.Value.toFixed(2)}°C`)
+        .raise(); // ⭐ Fix: Raise labels above the brush overlay
     labels.exit().remove();
 
     chartG.select(".y-axis").transition().duration(300).call(d3.axisLeft(yScale)).selectAll(".tick text").call(wrapText, 240);
@@ -291,10 +283,9 @@ function update(data, year) {
         .attr("stroke", "#000")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
-        
-      // Restore brush selection after update
+
     if (currentBrushSelection) {
-      brushG.call(d3.brushY().move, currentBrushSelection);
+        brushG.call(d3.brushY().move, currentBrushSelection);
     }
 }
 
