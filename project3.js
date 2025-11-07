@@ -236,25 +236,31 @@ function brushed(event) {
   const selection = event.selection;
   const yearData = currentData.filter(d => +d.Year === currentYear);
 
+  // Reset all bars first
+  chartG.selectAll(".bar").attr("opacity", 1);
+
+  // If no active selection, reset stats too
   if (!selection) {
-    chartG.selectAll(".bar").attr("opacity", 1);
     updateStats(yearData);
     return;
   }
 
   const [y0, y1] = selection;
 
+  // Find bars that overlap the brush region
   const brushedBars = yearData.filter(d => {
     const barTop = yScale(d.Country);
     const barBottom = barTop + yScale.bandwidth();
     return barBottom >= y0 && barTop <= y1;
   });
 
+  // Dim non-selected bars
   chartG.selectAll(".bar")
     .attr("opacity", d =>
       brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
     );
 
+  // Update stats for brushed subset
   updateStats(brushedBars);
 }
 
