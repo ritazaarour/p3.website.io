@@ -98,6 +98,8 @@ function setupChart(data) {
         
     chartG = svg.append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
+    chartG.append("g").attr("class", "bars");
+    chartG.append("g").attr("class", "labels");
 
     const extent = d3.extent(data, d => d.Value);
     const padding = (extent[1] - extent[0]) * 0.1;
@@ -141,10 +143,8 @@ function brushed(event) {
   });
 
     // highlight brushed bars
-    chartG.selectAll("rect")
-        .attr("opacity", d =>
-            brushedBars.find(b => b.Country === d.Country) ? 1 : 0.3
-        );
+    chartG.select(".bars").selectAll("rect")
+    .attr("opacity", d => brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3);
 
     updateStats(brushedBars);
 }
@@ -185,7 +185,7 @@ function update(data, year) {
 
     yScale.domain(yearData.map(d => d.Country));
 
-    const bars = chartG.selectAll("rect").data(yearData, d => d.Country);
+    const bars = chartG.select(".bars").selectAll("rect").data(yearData, d => d.Country);
 
     const barsEnter = bars.enter().append("rect")
         .attr("rx", 2)
@@ -212,7 +212,7 @@ function update(data, year) {
 
     bars.exit().remove();
 
-    const labels = chartG.selectAll(".value-label").data(yearData, d => d.Country);
+    const labels = chartG.select(".labels").selectAll(".value-label").data(yearData, d => d.Country);
     labels.enter().append("text")
         .attr("class", "value-label")
         .merge(labels)
