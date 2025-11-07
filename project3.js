@@ -119,15 +119,33 @@ function setupChart(data) {
         .attr("y", -30)
         .attr("text-anchor", "middle")
         .text("Temperature Change (°C)");
+}
 
-    // adding brushing
-    const brush = d3.brushY()
-        .extent([[0, 0], [chartWidth, chartHeight]])
-        .on("brush end", brushed);
+function brushed(event) {
+  const selection = event.selection;
+  const yearData = currentData.filter(d => +d.Year === currentYear);
 
-    chartG.append("g")
-        .attr("class", "brush")
-        .call(brush);
+  if (!selection) {
+    chartG.selectAll("rect").attr("opacity", 1);
+    updateStats(yearData);
+    return;
+  }
+
+  const [y0, y1] = selection;
+
+    // which bars are inside the brushed region
+  const brushedBars = yearData.filter(d => {
+    const yPos = yScale(d.Country) + yScale.bandwidth() / 2;
+    return y0 <= yPos && yPos <= y1;
+  });
+
+    // highlight brushed bars
+    chartG.selectAll("rect")
+        .attr("opacity", d =>
+            brushedBars.find(b => b.Country === d.Country) ? 1 : 0.3
+        );
+
+    updateStats(brushedBars);
 }
 
 // Wrap y-axis text
@@ -238,33 +256,6 @@ function updateStats(dataSubset) {
         .text(warmingCount);
 }
 
-function brushed(event) {
-    const selection = event.selection;
-    const yearData = currentData.filter(d => +d.Year === currentYear);
-
-    if (!selection) {
-        chartG.selectAll("rect").attr("opacity", 1);
-        updateStats(yearData);
-        return;
-    }
-
-    const [y0, y1] = selection;
-
-    // which bars are inside the brushed region
-    const brushedBars = yearData.filter(d => {
-        const yPos = yScale(d.Country) + yScale.bandwidth() / 2;
-        return y0 <= yPos && yPos <= y1;
-    });
-
-    // highlight brushed bars
-    chartG.selectAll("rect")
-        .attr("opacity", d =>
-            brushedBars.find(b => b.Country === d.Country) ? 1 : 0.3
-        );
-
-    updateStats(brushedBars);
-}
-
 // Load data and initialize
 loadData().then(rawData => {
     const americas = filterRegions(rawData);
@@ -273,4 +264,13 @@ loadData().then(rawData => {
     setupUI(yearRange, americas);
     setupChart(americas);
     update(americas, yearRange.min);
+
+    // adding brushing
+    const brush = d3.brushY()
+        .extent([[0, 0], [chartWidth, chartHeight]])
+        .on("brush end", brushed);
+
+    chartG.append("g")
+        .attr("class", "brush")
+        .call(brush);
 });
