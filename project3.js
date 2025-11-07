@@ -108,7 +108,7 @@ function setupChart(data) {
     .padding(0.2)
     .range([0, chartHeight]);
 
-  // Brush
+  // --- Add brush first (comes before bars in DOM) ---
   chartG.append("g")
     .attr("class", "brush")
     .call(
@@ -162,7 +162,6 @@ function update(data, year) {
 
   // Stats
   updateStats(yearData);
-
   yScale.domain(yearData.map(d => d.Country));
 
   const bars = chartG.selectAll("rect.bar").data(yearData, d => d.Country);
@@ -219,7 +218,7 @@ function update(data, year) {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "5,5");
 
-  // Raise for tooltips
+  // --- Raise bars/labels so tooltips work again ---
   chartG.selectAll('.bar, .overlay ~ *').raise();
 }
 
