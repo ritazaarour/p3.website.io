@@ -234,21 +234,45 @@ function update(data, year) {
 // Brush handler
 function brushed(event) {
   const selection = event.selection;
+  const yearData = currentData.filter(d => +d.Year === currentYear);
+
+  // If nothing is brushed, reset all bars and stats
   if (!selection) {
     chartG.selectAll(".bar").attr("opacity", 1);
+    updateStats(yearData); // reset to all
     return;
   }
 
   const [y0, y1] = selection;
-  const yearData = currentData.filter(d => +d.Year === currentYear);
 
+  // Get bars inside brushed region
   const brushedBars = yearData.filter(d => {
     const yPos = yScale(d.Country) + yScale.bandwidth() / 2;
     return y0 <= yPos && yPos <= y1;
   });
 
+  // Highlight brushed bars
   chartG.selectAll(".bar")
     .attr("opacity", d => brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3);
+
+  // Update stats based on brushed subset
+  updateStats(brushedBars);
+}
+
+function updateStats(dataSubset) {
+  const avgTemp = d3.mean(dataSubset, d => d.Value) || 0;
+  const maxTemp = d3.max(dataSubset, d => d.Value) || 0;
+  const warmingCount = dataSubset.filter(d => d.Value > 0).length;
+
+  d3.select("#avgTemp")
+    .text(`${avgTemp >= 0 ? '+' : ''}${avgTemp.toFixed(2)}°C`)
+    .attr("class", `stat-value ${avgTemp >= 0 ? 'warming' : 'cooling'}`);
+
+  d3.select("#maxTemp")
+    .text(`${maxTemp >= 0 ? '+' : ''}${maxTemp.toFixed(2)}°C`)
+    .attr("class", "stat-value warming");
+
+  d3.select("#warmingCount").text(warmingCount);
 }
 
 // Load data and initialize
