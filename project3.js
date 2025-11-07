@@ -2,6 +2,8 @@ let xScale, yScale;
 let chartG;         
 let chartWidth, chartHeight;
 let currentData, currentYear;
+let brushG;
+let currentBrushSelection = null;
 
 // Load JSON data
 async function loadData() {
@@ -135,6 +137,7 @@ function updateStats(selectedData) {
 }
 
 function brushed({selection}) {
+  currentBrushSelection = selection;
     // If selection is null, the brush has been cleared
     if (!selection) {
         // Reset opacity and update stats for the whole year
@@ -214,7 +217,7 @@ function setupChart(data) {
         .extent([[0, 0], [chartWidth, chartHeight]])
         .on("brush end", brushed);
 
-    chartG.append("g")
+    brushG = chartG.append("g")
         .attr("class", "brush")
         .call(brush);
 }
@@ -288,6 +291,11 @@ function update(data, year) {
         .attr("stroke", "#000")
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", "5,5");
+        
+      // Restore brush selection after update
+    if (currentBrushSelection) {
+      brushG.call(d3.brushY().move, currentBrushSelection);
+    }
 }
 
 // Load data and initialize
