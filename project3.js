@@ -109,13 +109,14 @@ function setupChart(data) {
     .range([0, chartHeight]);
 
   // --- Add brush first (comes before bars in DOM) ---
+  const brush = d3.brushY()
+  .extent([[0, 0], [chartWidth, chartHeight]])
+  .on("start", brushStart)
+  .on("brush end", brushed);
+
   chartG.append("g")
-    .attr("class", "brush")
-    .call(
-      d3.brushY()
-        .extent([[0, 0], [chartWidth, chartHeight]])
-        .on("brush end", brushed)
-    );
+  .attr("class", "brush")
+  .call(brush);
 
   // Axes
   chartG.append("g").attr("class", "y-axis");
@@ -244,40 +245,39 @@ function updateStats(filteredData) {
     
   d3.select("#warmingCount").text(warmingCount);
 }
+
+function brushStart(event) {
+  // Clear any existing brush selection when a new one starts
+  if (!event.sourceEvent) return; // ignore automatic events
+  chartG.select(".brush").call(d3.brushY().clear); // remove old brush region
+}
+
 // Brush handler
 function brushed(event) {
   const selection = event.selection;
-  // Ensure we are working with the data currently displayed in the chart
   const yearData = currentData.filter(d => +d.Year === currentYear);
 
-  // If nothing is brushed (selection is null), reset all bars and stats
+  // Reset all bars first
+  chartG.selectAll(".bar").attr("opacity", 0.3);
+
   if (!selection) {
     chartG.selectAll(".bar").attr("opacity", 1);
-    updateStats(yearData); // reset stats to show all countries for the year
+    updateStats(yearData);
     return;
   }
 
   const [y0, y1] = selection;
-  
-  // Determine which data points are inside the brushed region
+
   const brushedDataPoints = yearData.filter(d => {
-    // Calculate the Y position of the center of each bar
     const barTop = yScale(d.Country);
     const barBottom = barTop + yScale.bandwidth();
-    
-    // Check if any part of the bar is within the selection range
-    return (barTop < y1 && barBottom > y0); 
+    return (barTop < y1 && barBottom > y0);
   });
 
-  // Visually deemphasize all bars
-  chartG.selectAll(".bar").attr("opacity", 0.3);
-
-  // Highlight (full opacity) only the brushed bars
   chartG.selectAll(".bar")
     .filter(d => brushedDataPoints.includes(d))
     .attr("opacity", 1);
 
-  // Update stats panel using ONLY the data that was brushed
   updateStats(brushedDataPoints);
 }
 
