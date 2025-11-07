@@ -7,6 +7,7 @@ let currentData, currentYear;
 async function loadData() {
     const response = await fetch('Surface_Temp_Change_reduced.json');
     const data = await response.json();
+    console.log("✅ Loaded data rows:", data.length);
     return data;
 }
 
