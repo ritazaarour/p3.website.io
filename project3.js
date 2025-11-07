@@ -233,21 +233,24 @@ function update(data, year) {
 
 // Brush handler
 function brushed(event) {
-  const selection = event.selection;
   const yearData = currentData.filter(d => +d.Year === currentYear);
+  const selection = event.selection;
 
-  // Reset all bars first
+  // Always reset bar opacity first
   chartG.selectAll(".bar").attr("opacity", 1);
 
-  // If no active selection, reset stats too
+  // If there's no active brush selection (user clicked outside)
   if (!selection) {
     updateStats(yearData);
+
+    // Completely remove the old brush selection rectangle
+    chartG.select(".brush").call(d3.brushY().clear);
     return;
   }
 
   const [y0, y1] = selection;
 
-  // Find bars that overlap the brush region
+  // Compute which bars overlap the current brush area
   const brushedBars = yearData.filter(d => {
     const barTop = yScale(d.Country);
     const barBottom = barTop + yScale.bandwidth();
@@ -260,7 +263,7 @@ function brushed(event) {
       brushedBars.some(b => b.Country === d.Country) ? 1 : 0.3
     );
 
-  // Update stats for brushed subset
+  // Update stats for only brushed subset
   updateStats(brushedBars);
 }
 
